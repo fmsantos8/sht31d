@@ -37,7 +37,7 @@ struct sht31d_config {
  * measurement result.
  */
 struct sht31d {
-    hal_i2c_t *i2c;           /** Borrowed I2C bus handle. */
+    hal_i2c_t *i2c;           /** I2C bus handle. */
     uint8_t address;          /** Device address selected by the board. */
     bool initialized;         /** True after heater-disable initialization succeeds. */
     bool measurement_pending; /** True after a successful start until a read is attempted. */
