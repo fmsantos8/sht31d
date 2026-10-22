@@ -33,7 +33,7 @@ struct sht31d_config {
  * @brief Caller-owned persistent context; fields are private to the component.
  *
  * @details Declare in the composition root and pass sht31d_t pointers to
- * consumers. init() sets all fields. No singleton, arena allocation, or retained
+ * consumers. cmp_sht31d_init() sets all fields. No singleton, arena allocation, or retained
  * measurement result.
  */
 struct sht31d {

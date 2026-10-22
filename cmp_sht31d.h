@@ -12,7 +12,7 @@ extern "C" {
 
 #include <stdint.h>
 
-#define SHT31D_MEASUREMENT_TIME 16 /** Minimum conversion wait after start_measurement() returns (ms) */
+#define SHT31D_MEASUREMENT_TIME 16 /** Minimum conversion wait after cmp_sht31d_start_measurement() returns (ms) */
 
 /** @brief Caller-owned context; its storage definition is in cmp_sht31d_config.h. */
 typedef struct sht31d sht31d_t;
@@ -47,7 +47,7 @@ typedef struct {
  * @brief Initialize the complete context and disable the sensor's heater.
  *
  * @details Initializes all fields; no prior zeroing required. Invalid arguments
- * preserve the context. A transfer failure leaves it unavailable; retry init().
+ * preserve the context. A transfer failure leaves it unavailable; retry cmp_sht31d_init().
  * The board must provide stable power and a completed power-up/reset. Requires
  * exclusive single-shot use from idle; stop/reset external periodic acquisition
  * first and let any previous conversion finish. Does not reset the sensor or
@@ -63,7 +63,7 @@ typedef struct {
  * @retval SHT31D_STATUS_TIMEOUT I2C driver timeout expired.
  * @retval SHT31D_STATUS_COMMUNICATION_ERROR I2C transfer failed.
  */
-sht31d_status_t sht31d_init(sht31d_t *sensor, const sht31d_config_t *config);
+sht31d_status_t cmp_sht31d_init(sht31d_t *sensor, const sht31d_config_t *config);
 
 /**
  * @brief Start one high-repeatability measurement without clock stretching.
@@ -72,7 +72,7 @@ sht31d_status_t sht31d_init(sht31d_t *sensor, const sht31d_config_t *config);
  * waits at least SHT31D_MEASUREMENT_TIME from return before reading. A pending
  * measurement rejects another start without I2C traffic. On failure, no read is
  * pending, but conversion may have started: wait the full interval before retry
- * or init(). The caller handles retry timing and retains the last valid sample.
+ * or cmp_sht31d_init(). The caller handles retry timing and retains the last valid sample.
  *
  * @param[in,out] sensor Required initialized context with no pending measurement.
  *
@@ -84,7 +84,7 @@ sht31d_status_t sht31d_init(sht31d_t *sensor, const sht31d_config_t *config);
  * @retval SHT31D_STATUS_TIMEOUT I2C driver timeout expired.
  * @retval SHT31D_STATUS_COMMUNICATION_ERROR I2C transfer failed.
  */
-sht31d_status_t sht31d_start_measurement(sht31d_t *sensor);
+sht31d_status_t cmp_sht31d_start_measurement(sht31d_t *sensor);
 
 /**
  * @brief Read six bytes, validate both CRCs, and convert a pending measurement.
@@ -96,7 +96,7 @@ sht31d_status_t sht31d_start_measurement(sht31d_t *sensor);
  * without I2C traffic. The output changes only on complete success.
  *
  * @param[in,out] sensor Required initialized context with a pending measurement.
- * @param[out] out_sample Required independent output, written only on success.
+ * @param[out] sample Required independent output, written only on success.
  *
  * @retval SHT31D_STATUS_OK Validated sample written.
  * @retval SHT31D_STATUS_INVALID_ARGUMENT A required pointer is NULL.
@@ -107,7 +107,7 @@ sht31d_status_t sht31d_start_measurement(sht31d_t *sensor);
  * @retval SHT31D_STATUS_COMMUNICATION_ERROR I2C transfer failed.
  * @retval SHT31D_STATUS_CRC_ERROR Temperature or humidity CRC failed.
  */
-sht31d_status_t sht31d_read_measurement(sht31d_t *sensor, sht31d_sample_t *out_sample);
+sht31d_status_t cmp_sht31d_read_measurement(sht31d_t *sensor, sht31d_sample_t *sample);
 
 #ifdef __cplusplus
 }
