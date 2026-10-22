@@ -1,5 +1,6 @@
 /**
  * @file cmp_sht31d.h
+ * @author Fabricio Santos (fmsantos8@ucs.br)
  * @brief Single-shot SHT31-D acquisition
  */
 #ifndef CMP_SHT31D_H
@@ -45,68 +46,66 @@ typedef struct {
 /**
  * @brief Initialize the complete context and disable the sensor's heater.
  *
- * @details No prior zeroing of sensor is required. Invalid arguments leave it
- * unchanged. A valid attempt replaces the context, which remains unavailable
- * unless the heater-disable I2C command succeeds. Initialization may be retried.
- * Supply dependencies and context storage through cmp_sht31d_config.h.
- *
- * The board must provide stable power and a completed power-up/reset. This
- * component exclusively owns the sensor in single-shot mode from its idle
- * power-up state; taking over an externally configured periodic acquisition
- * requires stopping/resetting that acquisition first. Before reinitializing a
- * live sensor, allow any previous conversion to finish. init() does not reset
- * the sensor, construct the I2C bus, or reserve dynamic/arena storage.
- *
- * All calls must be serialized in normal execution context, including access to
- * the shared I2C bus. No ISR support, synchronization, scheduler, or delay is
- * provided. Transfers are synchronous and use the bus's configured timeout;
- * this does not guarantee a strict deadline for the whole call. The context and
- * borrowed bus must outlive their uses. Do not modify context fields or overlap
- * it with arguments/outputs. Other calls require a context previously passed to
- * init(), or a zero-initialized context which returns NOT_INITIALIZED.
+ * @details Initializes all fields; no prior zeroing required. Invalid arguments
+ * preserve the context. A transfer failure leaves it unavailable; retry init().
+ * The board must provide stable power and a completed power-up/reset. Requires
+ * exclusive single-shot use from idle; stop/reset external periodic acquisition
+ * first and let any previous conversion finish. Does not reset the sensor or
+ * construct the bus.
  *
  * @param[out] sensor Required caller-owned context.
  * @param[in] config Required bus handle and unshifted address.
- * @return OK, INVALID_ARGUMENT, NOT_INITIALIZED, NOT_SUPPORTED, TIMEOUT, or
- * COMMUNICATION_ERROR, according to validation and the I2C result.
+ *
+ * @retval SHT31D_STATUS_OK Context initialized and heater disabled.
+ * @retval SHT31D_STATUS_INVALID_ARGUMENT Invalid pointer or address.
+ * @retval SHT31D_STATUS_NOT_INITIALIZED I2C bus is unavailable.
+ * @retval SHT31D_STATUS_NOT_SUPPORTED Required I2C operation is unavailable.
+ * @retval SHT31D_STATUS_TIMEOUT I2C driver timeout expired.
+ * @retval SHT31D_STATUS_COMMUNICATION_ERROR I2C transfer failed.
  */
 sht31d_status_t sht31d_init(sht31d_t *sensor, const sht31d_config_t *config);
 
 /**
  * @brief Start one high-repeatability measurement without clock stretching.
  *
- * @details Writes command 0x2400 and returns without waiting for conversion.
- * After success, wait at least SHT31D_MEASUREMENT_TIME from this call's return
- * before read_measurement(). The caller measures that elapsed time and can do
- * other work in between. The component never reads the clock or starts a timer.
- *
- * A second start before reading returns INVALID_STATE without I2C traffic. A
- * failed start leaves no pending read, but the command may have reached the
- * device: allow the full conversion interval before a new start or init().
- * Retry timing and preservation of the previous valid sample belong to the
- * caller; the component stores no previous sample and retries no transfers.
+ * @details Sends 0x2400 without waiting for conversion. After success, the caller
+ * waits at least SHT31D_MEASUREMENT_TIME from return before reading. A pending
+ * measurement rejects another start without I2C traffic. On failure, no read is
+ * pending, but conversion may have started: wait the full interval before retry
+ * or init(). The caller handles retry timing and retains the last valid sample.
  *
  * @param[in,out] sensor Required initialized context with no pending measurement.
- * @return Component status, including INVALID_STATE if a measurement is pending.
+ *
+ * @retval SHT31D_STATUS_OK Measurement started.
+ * @retval SHT31D_STATUS_INVALID_ARGUMENT sensor is NULL.
+ * @retval SHT31D_STATUS_NOT_INITIALIZED Context or I2C bus is unavailable.
+ * @retval SHT31D_STATUS_INVALID_STATE A measurement is pending.
+ * @retval SHT31D_STATUS_NOT_SUPPORTED Required I2C operation is unavailable.
+ * @retval SHT31D_STATUS_TIMEOUT I2C driver timeout expired.
+ * @retval SHT31D_STATUS_COMMUNICATION_ERROR I2C transfer failed.
  */
 sht31d_status_t sht31d_start_measurement(sht31d_t *sensor);
 
 /**
  * @brief Read six bytes, validate both CRCs, and convert a pending measurement.
  *
- * @details Call only after the documented conversion wait. An early read can
- * receive a NACK, reported as COMMUNICATION_ERROR; the HAL cannot distinguish
- * that condition from other bus failures. No readiness polling is performed.
- *
- * out_sample is modified only on complete success. Once an actual read is
- * attempted, the pending measurement is consumed, including on I2C or CRC
- * failure: start a fresh measurement for the next acquisition. Argument or
- * lifecycle validation errors perform no I2C traffic and preserve pending work.
+ * @details Wait the full conversion interval first; an early NACK is reported
+ * as COMMUNICATION_ERROR, indistinguishable from other bus errors. No readiness
+ * polling. An attempted read consumes pending work even on I2C or CRC failure;
+ * start a new measurement afterward. Validation errors preserve pending work
+ * without I2C traffic. The output changes only on complete success.
  *
  * @param[in,out] sensor Required initialized context with a pending measurement.
  * @param[out] out_sample Required independent output, written only on success.
- * @return Component status, including INVALID_STATE without a pending measurement
- * and CRC_ERROR for a corrupted temperature or humidity word.
+ *
+ * @retval SHT31D_STATUS_OK Validated sample written.
+ * @retval SHT31D_STATUS_INVALID_ARGUMENT A required pointer is NULL.
+ * @retval SHT31D_STATUS_NOT_INITIALIZED Context or I2C bus is unavailable.
+ * @retval SHT31D_STATUS_INVALID_STATE No measurement is pending.
+ * @retval SHT31D_STATUS_NOT_SUPPORTED Required I2C operation is unavailable.
+ * @retval SHT31D_STATUS_TIMEOUT I2C driver timeout expired.
+ * @retval SHT31D_STATUS_COMMUNICATION_ERROR I2C transfer failed.
+ * @retval SHT31D_STATUS_CRC_ERROR Temperature or humidity CRC failed.
  */
 sht31d_status_t sht31d_read_measurement(sht31d_t *sensor, sht31d_sample_t *out_sample);
 

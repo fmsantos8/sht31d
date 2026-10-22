@@ -1,5 +1,6 @@
 /**
  * @file cmp_sht31d_config.h
+ * @author Fabricio Santos (fmsantos8@ucs.br)
  * @brief Construction and caller-owned storage for the SHT31-D composition root.
  */
 #ifndef CMP_SHT31D_CONFIG_H
@@ -18,9 +19,10 @@ extern "C" {
 
 /**
  * @brief Resources supplied by the composition, with no transfer of ownership.
- * @details The board supplies power, the ADDR connection, and I2C pull-ups. The
- * composition supplies a constructed master bus, which may be shared with other
- * components. This component does not select pins or configure the controller.
+ *
+ * @details The board supplies power, ADDR wiring, and I2C pull-ups; the
+ * composition supplies the constructed, possibly shared bus. No pin selection
+ * or controller configuration is performed here.
  */
 struct sht31d_config {
     hal_i2c_t *i2c;  /** Required, already constructed I2C master bus. */
@@ -29,9 +31,10 @@ struct sht31d_config {
 
 /**
  * @brief Caller-owned persistent context; fields are private to the component.
- * @details Declare storage in the composition root and pass sht31d_t pointers to
- * consumers. init() supplies all initial values. No singleton or HAL arena
- * allocation is used, and no measurement result is retained in this context.
+ *
+ * @details Declare in the composition root and pass sht31d_t pointers to
+ * consumers. init() sets all fields. No singleton, arena allocation, or retained
+ * measurement result.
  */
 struct sht31d {
     hal_i2c_t *i2c;           /** Borrowed I2C bus handle. */
